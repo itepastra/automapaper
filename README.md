@@ -1,16 +1,17 @@
+# Fork  
+This repo is a fork of [glpaper](https://hg.sr.ht/~scoopta/glpaper).
 
-# GLPaper
-GLPaper is a wallpaper program for wlroots based wayland compositors such as sway that allows you to render glsl shaders as your wallpaper
+# Automapaper
+Automapaper is a wallpaper program for wlroots based wayland compositors such as sway that allows you to render glsl shaders as your wallpaper
 
-[![builds.sr.ht status](https://builds.sr.ht/~scoopta/glpaper.svg)](https://builds.sr.ht/~scoopta/glpaper?)
 ## Dependencies
 	libwayland-dev
 	libegl-dev
 	pkg-config
 	meson
 ## Building
-	hg clone https://hg.sr.ht/~scoopta/glpaper
-	cd glpaper
+	git clone https://github.com/itepastra/automapaper.git
+	cd automapaper
 	meson setup build
 	ninja -C build
 ## Installing
@@ -18,10 +19,7 @@ GLPaper is a wallpaper program for wlroots based wayland compositors such as swa
 ## Uninstalling
 	sudo ninja -C build uninstall
 ## Bug Reports
-Please file bug reports at https://todo.sr.ht/~scoopta/glpaper
+Please file bug reports at https://github.com/itepastra/automapaper/issues
 ## Contributing
-Please submit patches to https://lists.sr.ht/~scoopta/glpaper
+Please submit patches to https://github.com/itepastra/automapaper/pulls
 
-You can find documentation here https://man.sr.ht/hg.sr.ht/email.md
-## Packages
-If you're on Arch there's an unofficial AUR package https://aur.archlinux.org/packages/glpaper-hg/

@@ -1,4 +1,4 @@
-project('glpaper', 'c', default_options : ['buildtype=release', 'warning_level=2'])
+project('automapaper', 'c', default_options : ['buildtype=release', 'warning_level=2'])
 cc = meson.get_compiler('c')
 
 inc = include_directories('inc')

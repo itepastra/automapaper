@@ -17,6 +17,7 @@
 
 #include <paper.h>
 
+#include <stdint.h>
 #include <time.h>
 #include <utils.h>
 #include <stdio.h>
@@ -91,17 +92,104 @@ static void get_res(void* data, struct wl_output* output, uint32_t flags, int32_
 	}
 }
 
-static void setup_fbo(GLuint* fbo, GLuint* prog, GLuint* texture, GLuint vert, uint16_t width, uint16_t height) {
-	const char* frag_data[] = {
-		"#version 100\n"
-		"uniform sampler2D tex2D;"
+static void create_texture(GLuint* texture, uint16_t width, uint16_t height) {
+	glGenTextures(1, texture);
+	glBindTexture(GL_TEXTURE_2D, *texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+}
 
-		"varying highp vec2 texCoords;"
+static GLuint create_program(char* frag_path) {
+	const char* vert_data[] = {
+		"#version 100\n"
+		"attribute highp vec2 datIn;"
+		"attribute highp vec2 texIn;"
+
+		"varying vec2 texCoords;"
 
 		"void main() {"
-		"	gl_FragColor = texture2D(tex2D, texCoords);"
+		"	texCoords = texIn;"
+		"	gl_Position = vec4(datIn, 0.0, 1.0);"
 		"}"
 	};
+
+	GLuint program = glCreateProgram();
+	GLuint vert = glCreateShader(GL_VERTEX_SHADER);
+	GLint vert_len[] = {strlen(vert_data[0])};
+	glShaderSource(vert, 1, vert_data, vert_len);
+	glCompileShader(vert);
+	GLint status;
+	glGetShaderiv(vert, GL_COMPILE_STATUS, &status);
+	if(!status) {
+		char buff[255];
+		glGetShaderInfoLog(vert, sizeof(buff), NULL, buff);
+		fprintf(stderr, "Vert: %s\n", buff);
+		exit(1);
+	}
+
+	if(access(frag_path, R_OK) != 0) {
+		fprintf(stderr, "I can't seem to find %s\n", frag_path);
+		exit(1);
+	}
+
+	FILE* f = fopen(frag_path, "r");
+	fseek(f, 0L, SEEK_END);
+	size_t f_size = ftell(f);
+	const char* frag_data[1];
+	frag_data[0] = calloc(1, f_size + 1);
+	fseek(f, 0L, SEEK_SET);
+	fread((void*) frag_data[0], 1, f_size, f);
+	fclose(f);
+
+	GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
+	GLint frag_len[] = {f_size};
+	glShaderSource(frag, 1, frag_data, frag_len);
+	glCompileShader(frag);
+	glGetShaderiv(frag, GL_COMPILE_STATUS, &status);
+	if(!status) {
+		char buff[255];
+		glGetShaderInfoLog(frag, sizeof(buff), NULL, buff);
+		fprintf(stderr, "Frag: %s\n", buff);
+		exit(1);
+	}
+
+	glAttachShader(program, vert);
+	glAttachShader(program, frag);
+	glLinkProgram(program);
+	glBindAttribLocation(program, 0, "datIn");
+	glBindAttribLocation(program, 1, "texIn");
+
+	glGetProgramiv(program, GL_LINK_STATUS, &status);
+	if(!status) {
+		char buff[255];
+		glGetProgramInfoLog(program, sizeof(buff), NULL, buff);
+		fprintf(stderr, "Shader: %s\n", buff);
+		exit(1);
+	}
+
+	return program;
+}
+
+static void setup_fbo(GLuint* fbo, GLuint* prog, GLuint* texture1, GLuint* texture2, GLuint vert, uint16_t width, uint16_t height, char* frag_path) {
+	// make conway look nice
+
+	if(access(frag_path, R_OK) != 0) {
+		fprintf(stderr, "I can't seem to find %s\n", frag_path);
+		exit(1);
+	}
+
+	FILE* f = fopen(frag_path, "r");
+	fseek(f, 0L, SEEK_END);
+	size_t f_size = ftell(f);
+	const char* frag_data[1];
+	frag_data[0] = calloc(1, f_size + 1);
+	fseek(f, 0L, SEEK_SET);
+	fread((void*) frag_data[0], 1, f_size, f);
+	fclose(f);
+
 
 	*prog = glCreateProgram();
 	GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
@@ -136,36 +224,22 @@ static void setup_fbo(GLuint* fbo, GLuint* prog, GLuint* texture, GLuint vert, u
 	glGenFramebuffers(1, fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
 
-	glGenTextures(1, texture);
-	glBindTexture(GL_TEXTURE_2D, *texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	create_texture(texture1, width, height);
+	create_texture(texture2, width, height);
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *texture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *texture1, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-static void draw(GLuint prog) {
-	glUseProgram(prog);
-	glClear(GL_COLOR_BUFFER_BIT);
-	GLint time_var = glGetUniformLocation(prog, "time");
-	glUniform1f(time_var, (utils_get_time_millis() - start) / 1000.0f);
-	GLint resolution = glGetUniformLocation(prog, "resolution");
-	glUniform2f(resolution, output->width, output->height);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-}
-
-static void draw_fbo(GLuint fbo, GLuint texture, GLuint main_prog, GLuint final_prog, uint16_t width, uint16_t height) {
+static void draw_noise(GLuint fbo, GLuint texture, GLuint random_prog, GLuint final_prog, uint16_t width, uint16_t height) {
 	glViewport(0, 0, width, height);
-	glUseProgram(main_prog);
+	glUseProgram(random_prog);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	GLint time_var = glGetUniformLocation(main_prog, "time");
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0); //bind the correct texture to the output????
+	GLint time_var = glGetUniformLocation(random_prog, "time");
 	glUniform1f(time_var, (utils_get_time_millis() - start) / 1000.0f);
-	GLint resolution = glGetUniformLocation(main_prog, "resolution");
+	GLint resolution = glGetUniformLocation(random_prog, "resolution");
 	glUniform2f(resolution, width, height);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -174,6 +248,28 @@ static void draw_fbo(GLuint fbo, GLuint texture, GLuint main_prog, GLuint final_
 	glUseProgram(final_prog);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	GLint tex2D = glGetUniformLocation(final_prog, "tex2D");
+	glUniform1i(tex2D, 0);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+static void draw_conway(GLuint fbo, GLuint current_state, GLuint next_state, GLuint conway_prog, GLuint display_prog, uint16_t conway_width, uint16_t conway_height) {
+	// do the conway pass
+	glViewport(0,0,conway_width, conway_height);
+	glUseProgram(conway_prog);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, next_state, 0); //bind the correct texture to the output????
+	GLint state_tex = glGetUniformLocation(conway_prog, "state");
+	glUniform1i(state_tex, 0);
+	GLint scale = glGetUniformLocation(conway_prog, "scale");
+	glUniform2f(scale, conway_width, conway_height);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	
+	// do the drawing pass
+	glViewport(0,0, output->width, output->height);
+	glBindFramebuffer(GL_FRAMEBUFFER,0);
+	glUseProgram(display_prog);
+	glBindTexture(GL_TEXTURE_2D, next_state);
+	GLint tex2D = glGetUniformLocation(display_prog, "tex2D");
 	glUniform1i(tex2D, 0);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
@@ -333,7 +429,7 @@ void paper_init(char* _monitor, char* frag_path, uint16_t fps, char* layer_name,
 		"}"
 	};
 
-	GLuint shader_prog = glCreateProgram();
+	GLuint conway_prog = glCreateProgram();
 	GLuint vert = glCreateShader(GL_VERTEX_SHADER);
 	GLint vert_len[] = {strlen(vert_data[0])};
 	glShaderSource(vert, 1, vert_data, vert_len);
@@ -373,52 +469,58 @@ void paper_init(char* _monitor, char* frag_path, uint16_t fps, char* layer_name,
 		exit(1);
 	}
 
-	glAttachShader(shader_prog, vert);
-	glAttachShader(shader_prog, frag);
-	glLinkProgram(shader_prog);
-	glBindAttribLocation(shader_prog, 0, "datIn");
-	glBindAttribLocation(shader_prog, 1, "texIn");
+	glAttachShader(conway_prog, vert);
+	glAttachShader(conway_prog, frag);
+	glLinkProgram(conway_prog);
+	glBindAttribLocation(conway_prog, 0, "datIn");
+	glBindAttribLocation(conway_prog, 1, "texIn");
 
-	glGetProgramiv(shader_prog, GL_LINK_STATUS, &status);
+	glGetProgramiv(conway_prog, GL_LINK_STATUS, &status);
 	if(!status) {
 		char buff[255];
-		glGetProgramInfoLog(shader_prog, sizeof(buff), NULL, buff);
+		glGetProgramInfoLog(conway_prog, sizeof(buff), NULL, buff);
 		fprintf(stderr, "Shader: %s\n", buff);
 		exit(1);
 	}
 
 
-	bool use_fbo = width > 0 || height > 0;
 	GLuint fbo = 0;
-	GLuint final_prog = 0;
-	GLuint render_tex = 0;
-	if(use_fbo) {
-		if(width == 0) {
-			width = output->width;
-		}
-		if(height == 0) {
-			height = output->height;
-		}
-		setup_fbo(&fbo, &final_prog, &render_tex, vert, width, height);
+	GLuint niceify_prog = 0;
+	GLuint current_state = 0;
+	GLuint next_state = 0;
+	if(width == 0) {
+		width = output->width;
 	}
+	if(height == 0) {
+		height = output->height;
+	}
+	setup_fbo(&fbo, &niceify_prog, &current_state, &next_state, vert, width, height, "../looksies.frag");
 
 	glDeleteShader(vert);
 	glDeleteShader(frag);
-	glUseProgram(shader_prog);
+	glUseProgram(conway_prog);
 
 	time_t frame_start;
 
+	GLuint random_prog = create_program("../random.frag");
+
+	draw_noise(fbo, current_state, random_prog, niceify_prog, width, height);
+
+	int64_t cycles = 0;
 	while(true) {
 		frame_start = utils_get_time_millis();
 		if(wl_display_flush(wl) == -1) {
 			exit(0);
 		}
-		if(use_fbo) {
-			draw_fbo(fbo, render_tex, shader_prog, final_prog, width, height);
-		} else {
-			draw(shader_prog);
-		}
+		draw_conway(fbo, current_state, next_state, conway_prog, niceify_prog, width, height);
+		GLuint temp = current_state;
+		current_state = next_state;
+		next_state = temp;
 		eglSwapBuffers(egl_display, egl_surface);
+		if(cycles++ > 2500) {
+			cycles = 0;
+			draw_noise(fbo, current_state, random_prog, niceify_prog, width, height);
+		}
 		if(fps != 0) {
 			int64_t sleep = (1000 / fps) - (utils_get_time_millis() - frame_start);
 			utils_sleep_millis(sleep >= 0 ? sleep : 0);
