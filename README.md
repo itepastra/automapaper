@@ -1,8 +1,12 @@
-# Fork  
-This repo is a fork of [glpaper](https://hg.sr.ht/~scoopta/glpaper).
-
 # Automapaper
 Automapaper is a wallpaper program for wlroots based wayland compositors such as sway that allows you to render glsl shaders as your wallpaper
+
+## Todo
+ - [ ] add config option for wrapping the state texture vs clamping
+ - [ ] add config option for amount of cycles before reset
+ - [ ] add mouse input
+ - [ ] non-absolute paths in the config file
+ - [ ] add support for multi screen from one call
 
 ## Dependencies
 	libwayland-dev
@@ -26,3 +30,6 @@ Please file bug reports at https://github.com/itepastra/automapaper/issues
 ## Contributing
 Please submit patches to https://github.com/itepastra/automapaper/pulls
 
+# References  
+This repo is based on of [glpaper](https://hg.sr.ht/~scoopta/glpaper).  
+It also uses a [toml parser](https://github.com/cktan/tomlc99).
