@@ -22,7 +22,7 @@
 
 void paper_init(const char *layer_name, const display_t display_config);
 
-void paper_run(const char *_monitor, const char *init_path, const char *state_path,
-               const char *display_path, const uint16_t fps, const char *layer_name,
+void paper_run(char *_monitor, char *init_path, char *state_path,
+               char *display_path, const uint16_t fps, const char *layer_name,
                const uint16_t width, const uint16_t height);
 #endif

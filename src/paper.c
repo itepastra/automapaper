@@ -106,8 +106,8 @@ static void get_res(void *data, struct wl_output *output, uint32_t flags,
 static void create_texture(GLuint *texture, uint16_t width, uint16_t height) {
   glGenTextures(1, texture);
   glBindTexture(GL_TEXTURE_2D, *texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
@@ -299,8 +299,8 @@ void paper_init(const char *layer_name, const display_t display_config) {
                 dp->tps, layer_name, dp->horizontal, dp->vertical);
 }
 
-void paper_run(const char *_monitor, const char *init_path, const char *state_path,
-               const char *display_path, const uint16_t fps, const char *layer_name,
+void paper_run(char *_monitor, char *init_path, char *state_path,
+               char *display_path, const uint16_t fps, const char *layer_name,
                const uint16_t width, const uint16_t height) {
   printf("running a new monitor, %s, with init state %s, an iter %s and a "
          "display %s. Should run at %d fps, simulating %d by %d\n",
@@ -336,6 +336,7 @@ void paper_run(const char *_monitor, const char *init_path, const char *state_pa
     wl_output_add_listener(node->output, &out_listener, node);
   }
   wl_display_roundtrip(wl);
+  free(_monitor);
 
   if (output == NULL) {
     fprintf(stderr,
@@ -479,6 +480,7 @@ void paper_run(const char *_monitor, const char *init_path, const char *state_pa
   fseek(f, 0L, SEEK_SET);
   fread((void *)frag_data[0], 1, f_size, f);
   fclose(f);
+  free(state_path);
 
   GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
   GLint frag_len[] = {f_size};
@@ -512,6 +514,7 @@ void paper_run(const char *_monitor, const char *init_path, const char *state_pa
   GLuint next_state = 0;
   setup_fbo(&fbo, &niceify_prog, &current_state, &next_state, vert, width,
             height, display_path);
+  free(display_path);
 
   glDeleteShader(vert);
   glDeleteShader(frag);
@@ -520,6 +523,7 @@ void paper_run(const char *_monitor, const char *init_path, const char *state_pa
   time_t frame_start;
 
   GLuint random_prog = create_program(init_path);
+  free(init_path);
 
   draw_noise(fbo, current_state, random_prog, niceify_prog, width, height);
 
