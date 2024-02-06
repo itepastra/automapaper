@@ -16,8 +16,7 @@ typedef struct __display_t {
 } display_t;
 
 typedef struct __config_t {
-  size_t amount;
-  display_t *displays[MAX_DISPLAYS];
+  display_t *display;
 } config_t;
 
 

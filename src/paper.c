@@ -114,7 +114,7 @@ static void create_texture(GLuint *texture, uint16_t width, uint16_t height) {
                GL_UNSIGNED_BYTE, NULL);
 }
 
-static GLuint create_program(char *frag_path) {
+static GLuint create_program(const char *frag_path) {
   const char *vert_data[] = {"#version 100\n"
                              "attribute highp vec2 datIn;"
                              "attribute highp vec2 texIn;"
@@ -185,7 +185,7 @@ static GLuint create_program(char *frag_path) {
 
 static void setup_fbo(GLuint *fbo, GLuint *prog, GLuint *texture1,
                       GLuint *texture2, GLuint vert, uint16_t width,
-                      uint16_t height, char *frag_path) {
+                      uint16_t height, const char *frag_path) {
   // make conway look nice
 
   if (access(frag_path, R_OK) != 0) {
@@ -293,26 +293,15 @@ static void draw_conway(GLuint fbo, GLuint current_state, GLuint next_state,
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void paper_init(char *layer_name, config_t *display_config) {
-  if (display_config->amount == 1) {
-    display_t *dp = display_config->displays[0];
-    paper_run(dp->name, dp->init_frag, dp->state_frag, dp->display_frag,
-              dp->tps, layer_name, dp->horizontal, dp->vertical);
-  } else {
-    for (size_t i = 0; i < display_config->amount; i++) {
-      if (fork() == 0) {
-        // spawned thread
-        display_t *dp = display_config->displays[i];
-        paper_run(dp->name, dp->init_frag, dp->state_frag, dp->display_frag,
-                  dp->tps, layer_name, dp->horizontal, dp->vertical);
-      }
-    }
-  }
+void paper_init(const char *layer_name, const display_t display_config) {
+      const display_t *dp = &display_config;
+      paper_run(dp->name, dp->init_frag, dp->state_frag, dp->display_frag,
+                dp->tps, layer_name, dp->horizontal, dp->vertical);
 }
 
-void paper_run(char *_monitor, char *init_path, char *state_path,
-               char *display_path, uint16_t fps, char *layer_name,
-               uint16_t width, uint16_t height) {
+void paper_run(const char *_monitor, const char *init_path, const char *state_path,
+               const char *display_path, const uint16_t fps, const char *layer_name,
+               const uint16_t width, const uint16_t height) {
   printf("running a new monitor, %s, with init state %s, an iter %s and a "
          "display %s. Should run at %d fps, simulating %d by %d\n",
          _monitor, init_path, state_path, display_path, fps, width, height);
@@ -521,12 +510,6 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
   GLuint niceify_prog = 0;
   GLuint current_state = 0;
   GLuint next_state = 0;
-  if (width == 0) {
-    width = output->width;
-  }
-  if (height == 0) {
-    height = output->height;
-  }
   setup_fbo(&fbo, &niceify_prog, &current_state, &next_state, vert, width,
             height, display_path);
 
@@ -552,7 +535,7 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
     current_state = next_state;
     next_state = temp;
     eglSwapBuffers(egl_display, egl_surface);
-    if (cycles++ > 250000) {
+    if (cycles++ > 2500) {
       cycles = 0;
       draw_noise(fbo, current_state, random_prog, niceify_prog, width, height);
     }
