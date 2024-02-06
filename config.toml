@@ -10,11 +10,11 @@ vertical=144
 tps=30
 # automaton shader
 # this has access to the previous state, which is a (horizontal, vertical) sized texture2D that uses the rgba values
-state_frag="/home/noa/programming/automapaper/test.frag"
+state_frag="/home/noa/programming/automapaper/state.frag"
 # initial state / reset shader
 # this has access to the resolution, and the time since the program was started
 init_frag="/home/noa/programming/automapaper/random.frag"
 # scaling/display shader
 # this has access to the current state to display
-display_frag="/home/noa/programming/automapaper/looksies.frag"
+display_frag="/home/noa/programming/automapaper/display.frag"
 
