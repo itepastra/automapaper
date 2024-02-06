@@ -20,11 +20,7 @@ Automapaper is a wallpaper program for wlroots based wayland compositors such as
 	sudo ninja -C build uninstall
 ## Running
 	if it's not installed, you can run it from the build folder using
-	./automapaper -W 256 -H 144 --fps 30 DP-3 ../test.frag
-	where -W is the amount of cells horizontally
-	-H vertically  
-	DP-3 the display output
-	and test.frag the shader that implements conway's game of life.
+	./automapaper -C {config}
 ## Bug Reports
 Please file bug reports at https://github.com/itepastra/automapaper/issues
 ## Contributing
