@@ -18,8 +18,11 @@
 #ifndef PAPER_H
 #define PAPER_H
 
-#include <stdint.h>
+#include "conf.h"
 
-void paper_init(char* monitor, char* frag_path, uint16_t fps, char* layer_name, uint16_t width, uint16_t height);
+void paper_init(char *layer_name, config_t *display_config);
 
+void paper_run(char *_monitor, char *init_path, char *state_path,
+               char *display_path, uint16_t fps, char *layer_name,
+               uint16_t width, uint16_t height);
 #endif
