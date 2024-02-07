@@ -529,6 +529,7 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
 
   int64_t cycles = 0;
   while (true) {
+    printf("am at cycle %ld\n", cycles);
     frame_start = utils_get_time_millis();
     if (wl_display_flush(wl) == -1) {
       exit(0);
