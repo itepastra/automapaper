@@ -255,12 +255,12 @@ static void draw_noise(GLuint fbo, GLuint texture, GLuint random_prog,
                          texture,
                          0); // bind the correct texture to the output????
   GLint time_var = glGetUniformLocation(random_prog, "time");
-  glUniform1f(time_var, (utils_get_time_millis() - start) / 1000.0f);
+  glUniform1f(time_var, (utils_get_time_millis() - start) % 10000 * 2.718281828f);
   GLint resolution = glGetUniformLocation(random_prog, "resolution");
   glUniform2f(resolution, width, height);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-  glViewport(0, 0, output->width, output->height);
+  glViewport(0, 0, width, height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glUseProgram(final_prog);
   glBindTexture(GL_TEXTURE_2D, texture);
