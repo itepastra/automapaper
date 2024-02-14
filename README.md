@@ -1,5 +1,12 @@
 # Automapaper
-Automapaper is a wallpaper program for wlroots based wayland compositors such as sway that allows you to render glsl shaders as your wallpaper
+Automapaper is a wallpaper program for wlroots based wayland compositors such as sway that allows you to render glsl es shaders as your wallpaper
+your shaders have to use one of the GLES versions:
+```
+#version 100
+#version 300 es
+#version 310 es
+#version 320 es
+```
 
 ## Todo
  - [ ] add config option for wrapping the state texture vs clamping
