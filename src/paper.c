@@ -302,12 +302,12 @@ static void display(GLint display_prog, GLuint next_state, float frame_time) {
 void paper_init(const char *layer_name, const display_t display_config) {
   const display_t *dp = &display_config;
   paper_run(dp->name, dp->init_frag, dp->state_frag, dp->display_frag, dp->tps,
-            layer_name, dp->horizontal, dp->vertical, dp->cycles, dp->frame_skip);
+            layer_name, dp->horizontal, dp->vertical, dp->cycles, dp->frames_per_tick);
 }
 
 void paper_run(char *_monitor, char *init_path, char *state_path,
                char *display_path, const uint16_t fps, const char *layer_name,
-               const uint16_t width, const uint16_t height, const uint64_t max_cycles, const uint16_t frame_skip) {
+               const uint16_t width, const uint16_t height, const uint64_t max_cycles, const uint16_t frames_per_tick) {
   printf("running a new monitor, %s, with init state %s, an iter %s and a "
          "display %s. Should run at %d fps, simulating %d by %d\n",
          _monitor, init_path, state_path, display_path, fps, width, height);
@@ -546,10 +546,10 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
       next_state = temp;
       state_inc(fbo, next_state, state_program, width, height);
     }
-    display(display_program, next_state, (frame_part / frame_skip));
+    display(display_program, next_state, (frame_part / frames_per_tick));
     frame_part++;
-    if (frame_part >= frame_skip) {
-      frame_part = 0;
+    if (frame_part >= frames_per_tick) {
+      frame_part = 0.0;
     }
     eglSwapBuffers(egl_display, egl_surface);
     if (cycles++ > max_cycles) {
@@ -557,7 +557,7 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
       draw_noise(fbo, current_state, init_program, display_program, width, height);
     }
     if (fps != 0) {
-      int64_t sleep = (1000 / (fps*frame_skip)) - (utils_get_time_millis() - frame_start);
+      int64_t sleep = (1000 / (fps*frames_per_tick)) - (utils_get_time_millis() - frame_start);
       utils_sleep_millis(sleep >= 0 ? sleep : 0);
     }
   }

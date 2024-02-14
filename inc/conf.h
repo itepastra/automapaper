@@ -15,7 +15,7 @@ typedef struct __display_t {
   uint16_t horizontal;
   uint16_t vertical;
   uint64_t cycles;
-  uint16_t frame_skip;
+  uint16_t frames_per_tick;
 } display_t;
 
 typedef struct __config_t {
