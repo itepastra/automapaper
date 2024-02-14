@@ -94,6 +94,7 @@ int main(int argc, char **argv) {
       } else {
         config_str = strcat(config, "/automapaper/config.toml");
       }
+      printf("trying to find config at %s\n", config_str);
     }
 
     config_t config;

@@ -185,7 +185,7 @@ static GLuint create_program(const char *frag_path) {
 }
 
 static void setup_fbo(GLuint *fbo, GLuint *prog, GLuint *texture1,
-                      GLuint *texture2, GLuint vert, uint16_t width,
+                      GLuint *texture2, GLuint *texture3, GLuint vert, uint16_t width,
                       uint16_t height, const char *frag_path) {
   // make conway look nice
 
@@ -238,6 +238,7 @@ static void setup_fbo(GLuint *fbo, GLuint *prog, GLuint *texture1,
 
   create_texture(texture1, width, height);
   create_texture(texture2, width, height);
+  create_texture(texture3, width, height);
 
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                          *texture1, 0);
@@ -284,19 +285,24 @@ static void state_inc(GLuint fbo, GLuint next_state, GLuint conway_prog,
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void display(GLint display_prog, GLuint next_state, float frame_time) {
+static void display(GLint display_prog, GLuint current_state, GLuint old_state, float frame_time) {
   // do the drawing pass
   glViewport(0, 0, output->width, output->height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glUseProgram(display_prog);
-  glBindTexture(GL_TEXTURE_2D, next_state);
+  glBindTexture(GL_TEXTURE_2D, current_state);
   GLint tex2D = glGetUniformLocation(display_prog, "tex2D");
   glUniform1i(tex2D, 0);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, old_state);
+  GLint oldtex2D = glGetUniformLocation(display_prog, "old2D");
+  glUniform1i(oldtex2D, 1);
   GLint screen_resolution = glGetUniformLocation(display_prog, "resolution");
   glUniform2i(screen_resolution, output->width, output->height);
   GLint frame_part = glGetUniformLocation(display_prog, "frame_part");
   glUniform1f(frame_part, frame_time);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  glActiveTexture(GL_TEXTURE0);
 }
 
 void paper_init(const char *layer_name, const display_t display_config) {
@@ -516,9 +522,10 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
 
   GLuint fbo = 0;
   GLuint display_program = 0;
-  GLuint current_state = 0;
-  GLuint next_state = 0;
-  setup_fbo(&fbo, &display_program, &current_state, &next_state, vert, width,
+  GLuint state_one = 0;
+  GLuint state_two = 0;
+  GLuint state_three = 0;
+  setup_fbo(&fbo, &display_program, &state_one, &state_two, &state_three, vert, width,
             height, display_path);
   free(display_path);
 
@@ -531,7 +538,7 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
   GLuint init_program = create_program(init_path);
   free(init_path);
 
-  draw_noise(fbo, next_state, init_program, display_program, width, height);
+  draw_noise(fbo, state_two, init_program, display_program, width, height);
 
   uint64_t cycles = 0;
   float_t frame_part = 0;
@@ -541,12 +548,13 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
       exit(0);
     }
     if (frame_part == 0) {
-      GLuint temp = current_state;
-      current_state = next_state;
-      next_state = temp;
-      state_inc(fbo, next_state, state_program, width, height);
+      GLuint temp = state_one;
+      state_one = state_two;
+      state_two = state_three;
+      state_three = temp;
+      state_inc(fbo, state_two, state_program, width, height);
     }
-    display(display_program, next_state, (frame_part / frames_per_tick));
+    display(display_program, state_two, state_one, (frame_part / frames_per_tick));
     frame_part++;
     if (frame_part >= frames_per_tick) {
       frame_part = 0.0;
@@ -554,7 +562,7 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
     eglSwapBuffers(egl_display, egl_surface);
     if (cycles++ > max_cycles) {
       cycles = 0;
-      draw_noise(fbo, current_state, init_program, display_program, width, height);
+      draw_noise(fbo, state_one, init_program, display_program, width, height);
     }
     if (fps != 0) {
       int64_t sleep = (1000 / (fps*frames_per_tick)) - (utils_get_time_millis() - frame_start);
