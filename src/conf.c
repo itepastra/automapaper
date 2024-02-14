@@ -59,8 +59,18 @@ int parseconfig(const char *file, config_t *config) {
     fprintf(stderr, "display_frag value error in display\n");
     problem++;
   }
+  toml_datum_t cycles = toml_int_in(display, "cycles");
+  if (!cycles.ok) {
+    fprintf(stderr, "cycles value error in display\n");
+    problem++;
+  }
+  toml_datum_t frame_skip = toml_int_in(display, "frame_skip");
+  if (!frame_skip.ok) {
+    fprintf(stderr, "frame_skip value error in display\n");
+    problem++;
+  }
 
-  if (!problem) {
+  if (problem == 0) {
     display_t current = {
         .name = name.u.s,
         .horizontal = horizontal.u.b,
@@ -69,10 +79,13 @@ int parseconfig(const char *file, config_t *config) {
         .state_frag = state_frag.u.s,
         .init_frag = init_frag.u.s,
         .display_frag = display_frag.u.s,
+        .frame_skip = frame_skip.u.b,
+        .cycles = cycles.u.i,
     };
     printf("parsed display with name %s\n", current.name);
     config->display = &current;
+    return 0;
   }
 
-  return 0;
+  return 1;
 }

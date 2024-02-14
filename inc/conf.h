@@ -1,6 +1,7 @@
 #ifndef PM_CONF_H
 #define PM_CONF_H
 
+#include <stdint.h>
 #define MAX_DISPLAYS 8
 
 #include <alpm.h>
@@ -10,9 +11,11 @@ typedef struct __display_t {
   char* init_frag;
   char* state_frag;
   char* display_frag;
-  int tps;
-  int horizontal;
-  int vertical;
+  uint16_t tps;
+  uint16_t horizontal;
+  uint16_t vertical;
+  uint64_t cycles;
+  uint16_t frame_skip;
 } display_t;
 
 typedef struct __config_t {

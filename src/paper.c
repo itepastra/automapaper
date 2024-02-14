@@ -16,6 +16,7 @@
  */
 
 #include "conf.h"
+#include <math.h>
 #include <paper.h>
 
 #include <stdbool.h>
@@ -267,9 +268,8 @@ static void draw_noise(GLuint fbo, GLuint texture, GLuint random_prog,
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void draw_conway(GLuint fbo, GLuint current_state, GLuint next_state,
-                        GLuint conway_prog, GLuint display_prog,
-                        uint16_t conway_width, uint16_t conway_height) {
+static void state_inc(GLuint fbo, GLuint next_state, GLuint conway_prog,
+                      uint16_t conway_width, uint16_t conway_height) {
   // do the conway pass
   glViewport(0, 0, conway_width, conway_height);
   glUseProgram(conway_prog);
@@ -282,7 +282,9 @@ static void draw_conway(GLuint fbo, GLuint current_state, GLuint next_state,
   GLint scale = glGetUniformLocation(conway_prog, "scale");
   glUniform2f(scale, conway_width, conway_height);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
 
+static void display(GLint display_prog, GLuint next_state, float frame_time) {
   // do the drawing pass
   glViewport(0, 0, output->width, output->height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -290,18 +292,22 @@ static void draw_conway(GLuint fbo, GLuint current_state, GLuint next_state,
   glBindTexture(GL_TEXTURE_2D, next_state);
   GLint tex2D = glGetUniformLocation(display_prog, "tex2D");
   glUniform1i(tex2D, 0);
+  GLint screen_resolution = glGetUniformLocation(display_prog, "resolution");
+  glUniform2i(screen_resolution, output->width, output->height);
+  GLint frame_part = glGetUniformLocation(display_prog, "frame_part");
+  glUniform1f(frame_part, frame_time);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 void paper_init(const char *layer_name, const display_t display_config) {
-      const display_t *dp = &display_config;
-      paper_run(dp->name, dp->init_frag, dp->state_frag, dp->display_frag,
-                dp->tps, layer_name, dp->horizontal, dp->vertical);
+  const display_t *dp = &display_config;
+  paper_run(dp->name, dp->init_frag, dp->state_frag, dp->display_frag, dp->tps,
+            layer_name, dp->horizontal, dp->vertical, dp->cycles, dp->frame_skip);
 }
 
 void paper_run(char *_monitor, char *init_path, char *state_path,
                char *display_path, const uint16_t fps, const char *layer_name,
-               const uint16_t width, const uint16_t height) {
+               const uint16_t width, const uint16_t height, const uint64_t max_cycles, const uint16_t frame_skip) {
   printf("running a new monitor, %s, with init state %s, an iter %s and a "
          "display %s. Should run at %d fps, simulating %d by %d\n",
          _monitor, init_path, state_path, display_path, fps, width, height);
@@ -453,7 +459,7 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
                              "	gl_Position = vec4(datIn, 0.0, 1.0);"
                              "}"};
 
-  GLuint conway_prog = glCreateProgram();
+  GLuint state_program = glCreateProgram();
   GLuint vert = glCreateShader(GL_VERTEX_SHADER);
   GLint vert_len[] = {strlen(vert_data[0])};
   glShaderSource(vert, 1, vert_data, vert_len);
@@ -494,59 +500,66 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
     exit(1);
   }
 
-  glAttachShader(conway_prog, vert);
-  glAttachShader(conway_prog, frag);
-  glLinkProgram(conway_prog);
-  glBindAttribLocation(conway_prog, 0, "datIn");
-  glBindAttribLocation(conway_prog, 1, "texIn");
+  glAttachShader(state_program, vert);
+  glAttachShader(state_program, frag);
+  glLinkProgram(state_program);
+  glBindAttribLocation(state_program, 0, "datIn");
+  glBindAttribLocation(state_program, 1, "texIn");
 
-  glGetProgramiv(conway_prog, GL_LINK_STATUS, &status);
+  glGetProgramiv(state_program, GL_LINK_STATUS, &status);
   if (!status) {
     char buff[255];
-    glGetProgramInfoLog(conway_prog, sizeof(buff), NULL, buff);
+    glGetProgramInfoLog(state_program, sizeof(buff), NULL, buff);
     fprintf(stderr, "Shader: %s\n", buff);
     exit(1);
   }
 
   GLuint fbo = 0;
-  GLuint niceify_prog = 0;
+  GLuint display_program = 0;
   GLuint current_state = 0;
   GLuint next_state = 0;
-  setup_fbo(&fbo, &niceify_prog, &current_state, &next_state, vert, width,
+  setup_fbo(&fbo, &display_program, &current_state, &next_state, vert, width,
             height, display_path);
   free(display_path);
 
   glDeleteShader(vert);
   glDeleteShader(frag);
-  glUseProgram(conway_prog);
+  glUseProgram(state_program);
 
   time_t frame_start;
 
-  GLuint random_prog = create_program(init_path);
+  GLuint init_program = create_program(init_path);
   free(init_path);
 
-  draw_noise(fbo, current_state, random_prog, niceify_prog, width, height);
+  draw_noise(fbo, next_state, init_program, display_program, width, height);
 
-  int64_t cycles = 0;
+  uint64_t cycles = 0;
+  float_t frame_part = 0;
   while (true) {
-    printf("am at cycle %ld\n", cycles);
     frame_start = utils_get_time_millis();
     if (wl_display_flush(wl) == -1) {
       exit(0);
     }
-    draw_conway(fbo, current_state, next_state, conway_prog, niceify_prog,
-                width, height);
-    GLuint temp = current_state;
-    current_state = next_state;
-    next_state = temp;
+    if (frame_part == 0) {
+      GLuint temp = current_state;
+      current_state = next_state;
+      next_state = temp;
+      state_inc(fbo, next_state, state_program, width, height);
+    }
+    display(display_program, next_state, (frame_part / frame_skip));
+    frame_part++;
+    if (frame_part >= frame_skip) {
+      frame_part = 0;
+    }
     eglSwapBuffers(egl_display, egl_surface);
-    if (cycles++ > 2500) {
+    if (cycles++ > max_cycles) {
       cycles = 0;
-      draw_noise(fbo, current_state, random_prog, niceify_prog, width, height);
+      draw_noise(fbo, current_state, init_program, display_program, width, height);
     }
     if (fps != 0) {
-      int64_t sleep = (1000 / fps) - (utils_get_time_millis() - frame_start);
+      int64_t sleep = (1000 / (fps*frame_skip)) - (utils_get_time_millis() - frame_start);
       utils_sleep_millis(sleep >= 0 ? sleep : 0);
     }
   }
 }
+

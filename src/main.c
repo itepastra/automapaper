@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     config_t config;
     int parseresult = parseconfig(config_str, &config);
     if (parseresult != 0) {
-      fprintf(stderr, "parsing had an error\n");
+      fprintf(stderr, "parsing had an error, exiting.\n");
       exit(parseresult);
     }
     paper_init(layer, *config.display);
