@@ -90,9 +90,9 @@ int main(int argc, char **argv) {
           fprintf(stderr, "HOME environment variable not set, please specify a "
                           "config file to use");
         }
-        config_str = strcat(getenv("HOME"), "/.config/automapaper/config.conf");
+        config_str = strcat(getenv("HOME"), "/.config/automapaper/config.toml");
       } else {
-        config_str = strcat(config, "/automapaper/config.conf");
+        config_str = strcat(config, "/automapaper/config.toml");
       }
     }
 
