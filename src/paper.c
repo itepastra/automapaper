@@ -116,11 +116,11 @@ static void create_texture(GLuint *texture, uint16_t width, uint16_t height) {
 }
 
 static GLuint create_program(const char *frag_path) {
-  const char *vert_data[] = {"#version 100\n"
-                             "attribute highp vec2 datIn;"
-                             "attribute highp vec2 texIn;"
+  const char *vert_data[] = {"#version 310 es\n"
+                             "in highp vec2 datIn;"
+                             "in highp vec2 texIn;"
 
-                             "varying vec2 texCoords;"
+                             "out vec2 texCoords;"
 
                              "void main() {"
                              "	texCoords = texIn;"
@@ -454,11 +454,11 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
                         (void *)(2 * sizeof(GLfloat)));
   glEnableVertexAttribArray(1);
 
-  const char *vert_data[] = {"#version 100\n"
-                             "attribute highp vec2 datIn;"
-                             "attribute highp vec2 texIn;"
+  const char *vert_data[] = {"#version 310 es\n"
+                             "in highp vec2 datIn;"
+                             "in highp vec2 texIn;"
 
-                             "varying vec2 texCoords;"
+                             "out vec2 texCoords;"
 
                              "void main() {"
                              "	texCoords = texIn;"
