@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "parsing had an error, exiting.\n");
       exit(parseresult);
     }
-    paper_init(layer, *config.display);
+    paper_init(layer, config.display);
   } else {
     print_usage(argv);
   }

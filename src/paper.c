@@ -305,8 +305,8 @@ static void display(GLint display_prog, GLuint current_state, GLuint old_state, 
   glActiveTexture(GL_TEXTURE0);
 }
 
-void paper_init(const char *layer_name, const display_t display_config) {
-  const display_t *dp = &display_config;
+void paper_init(const char *layer_name, const display_t *display_config) {
+  const display_t *dp = display_config;
   paper_run(dp->name, dp->init_frag, dp->state_frag, dp->display_frag, dp->tps,
             layer_name, dp->horizontal, dp->vertical, dp->cycles, dp->frames_per_tick);
 }
