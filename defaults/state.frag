@@ -1,4 +1,4 @@
-#version 100
+#version 310 es
 precision highp float;
 
 uniform sampler2D state;
