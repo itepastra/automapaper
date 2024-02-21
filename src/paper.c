@@ -152,7 +152,10 @@ static GLuint create_program(const char *frag_path) {
   const char *frag_data[1];
   frag_data[0] = calloc(1, f_size + 1);
   fseek(f, 0L, SEEK_SET);
-  fread((void *)frag_data[0], 1, f_size, f);
+  if (fread((void *)frag_data[0], 1, f_size, f) != f_size) {
+    printf("Error reading frag data\n");
+    exit(1);
+  }
   fclose(f);
 
   GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
@@ -200,7 +203,10 @@ static void setup_fbo(GLuint *fbo, GLuint *prog, GLuint *texture1,
   const char *frag_data[1];
   frag_data[0] = calloc(1, f_size + 1);
   fseek(f, 0L, SEEK_SET);
-  fread((void *)frag_data[0], 1, f_size, f);
+  if (fread((void *)frag_data[0], 1, f_size, f) != f_size) {
+    printf("error reading frag data\n");
+    exit(1);
+  }
   fclose(f);
 
   *prog = glCreateProgram();
@@ -286,8 +292,8 @@ static void state_inc(GLuint fbo, GLuint next_state, GLuint conway_prog,
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void display_state(GLint display_prog, GLuint current_state, GLuint old_state,
-                    float frame_time) {
+static void display_state(GLint display_prog, GLuint current_state,
+                          GLuint old_state, float frame_time) {
   // do the drawing pass
   glViewport(0, 0, output->width, output->height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -495,7 +501,10 @@ void paper_run(char _monitor[MAX_DISPLAY_LENGTH],
   const char *frag_data[1];
   frag_data[0] = calloc(1, f_size + 1);
   fseek(f, 0L, SEEK_SET);
-  fread((void *)frag_data[0], 1, f_size, f);
+  if (fread((void *)frag_data[0], 1, f_size, f) != f_size) {
+    printf("Error reading frag data\n");
+    exit(1);
+  }
   fclose(f);
 
   GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
@@ -557,7 +566,7 @@ void paper_run(char _monitor[MAX_DISPLAY_LENGTH],
       state_inc(fbo, state_two, state_program, width, height);
     }
     display_state(display_program, state_two, state_one,
-            (frame_part / frames_per_tick));
+                  (frame_part / frames_per_tick));
     frame_part++;
     if (frame_part >= frames_per_tick) {
       frame_part = 0.0;
