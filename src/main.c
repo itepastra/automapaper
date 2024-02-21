@@ -16,7 +16,6 @@
  */
 
 #include "conf.h"
-#include "ini.h"
 #include <getopt.h>
 #include <stdint.h>
 #include <stdio.h>
