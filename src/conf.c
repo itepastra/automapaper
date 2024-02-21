@@ -10,7 +10,7 @@ int parseconfig(const char *file, display *display) {
 
   fp = fopen(file, "r");
   if (!fp) {
-    fprintf(stderr, "cannot open file %s\n", file);
+    fprintf(stderr, "cannot open file %s, do you have a config yet? \nIf not, you can find one in https://github.com/itepastra/automapaper/tree/main/defaults\nDon't forget to get some shaders as well\n", file);
     return 1;
   }
 
