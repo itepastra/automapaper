@@ -185,8 +185,8 @@ static GLuint create_program(const char *frag_path) {
 }
 
 static void setup_fbo(GLuint *fbo, GLuint *prog, GLuint *texture1,
-                      GLuint *texture2, GLuint *texture3, GLuint vert, uint16_t width,
-                      uint16_t height, const char *frag_path) {
+                      GLuint *texture2, GLuint *texture3, GLuint vert,
+                      uint16_t width, uint16_t height, const char *frag_path) {
   // make conway look nice
 
   if (access(frag_path, R_OK) != 0) {
@@ -255,7 +255,8 @@ static void draw_noise(GLuint fbo, GLuint texture, GLuint random_prog,
                          texture,
                          0); // bind the correct texture to the output????
   GLint time_var = glGetUniformLocation(random_prog, "time");
-  glUniform1f(time_var, (utils_get_time_millis() - start) % 10000 * 2.718281828f);
+  glUniform1f(time_var,
+              (utils_get_time_millis() - start) % 10000 * 2.718281828f);
   GLint resolution = glGetUniformLocation(random_prog, "resolution");
   glUniform2f(resolution, width, height);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -285,7 +286,8 @@ static void state_inc(GLuint fbo, GLuint next_state, GLuint conway_prog,
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void display(GLint display_prog, GLuint current_state, GLuint old_state, float frame_time) {
+static void display_state(GLint display_prog, GLuint current_state, GLuint old_state,
+                    float frame_time) {
   // do the drawing pass
   glViewport(0, 0, output->width, output->height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -305,15 +307,19 @@ static void display(GLint display_prog, GLuint current_state, GLuint old_state, 
   glActiveTexture(GL_TEXTURE0);
 }
 
-void paper_init(const char *layer_name, const display_t *display_config) {
-  const display_t *dp = display_config;
-  paper_run(dp->name, dp->init_frag, dp->state_frag, dp->display_frag, dp->tps,
-            layer_name, dp->horizontal, dp->vertical, dp->cycles, dp->frames_per_tick);
+void paper_init(const char *layer_name, display dp) {
+  paper_run(dp.name, dp.init_frag, dp.state_frag, dp.display_frag, dp.tps,
+            layer_name, dp.horizontal, dp.vertical, dp.cycles,
+            dp.frames_per_tick);
 }
 
-void paper_run(char *_monitor, char *init_path, char *state_path,
-               char *display_path, const uint16_t fps, const char *layer_name,
-               const uint16_t width, const uint16_t height, const uint64_t max_cycles, const uint16_t frames_per_tick) {
+void paper_run(char _monitor[MAX_DISPLAY_LENGTH],
+               char init_path[MAX_PATH_LENGTH],
+               char state_path[MAX_PATH_LENGTH],
+               char display_path[MAX_PATH_LENGTH], const uint16_t fps,
+               const char *layer_name, const uint16_t width,
+               const uint16_t height, const uint64_t max_cycles,
+               const uint16_t frames_per_tick) {
   printf("running a new monitor, %s, with init state %s, an iter %s and a "
          "display %s. Should run at %d fps, simulating %d by %d\n",
          _monitor, init_path, state_path, display_path, fps, width, height);
@@ -348,7 +354,6 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
     wl_output_add_listener(node->output, &out_listener, node);
   }
   wl_display_roundtrip(wl);
-  free(_monitor);
 
   if (output == NULL) {
     fprintf(stderr,
@@ -492,7 +497,6 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
   fseek(f, 0L, SEEK_SET);
   fread((void *)frag_data[0], 1, f_size, f);
   fclose(f);
-  free(state_path);
 
   GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
   GLint frag_len[] = {f_size};
@@ -525,9 +529,8 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
   GLuint state_one = 0;
   GLuint state_two = 0;
   GLuint state_three = 0;
-  setup_fbo(&fbo, &display_program, &state_one, &state_two, &state_three, vert, width,
-            height, display_path);
-  free(display_path);
+  setup_fbo(&fbo, &display_program, &state_one, &state_two, &state_three, vert,
+            width, height, display_path);
 
   glDeleteShader(vert);
   glDeleteShader(frag);
@@ -536,7 +539,6 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
   time_t frame_start;
 
   GLuint init_program = create_program(init_path);
-  free(init_path);
 
   draw_noise(fbo, state_two, init_program, display_program, width, height);
 
@@ -554,7 +556,8 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
       state_three = temp;
       state_inc(fbo, state_two, state_program, width, height);
     }
-    display(display_program, state_two, state_one, (frame_part / frames_per_tick));
+    display_state(display_program, state_two, state_one,
+            (frame_part / frames_per_tick));
     frame_part++;
     if (frame_part >= frames_per_tick) {
       frame_part = 0.0;
@@ -565,9 +568,9 @@ void paper_run(char *_monitor, char *init_path, char *state_path,
       draw_noise(fbo, state_one, init_program, display_program, width, height);
     }
     if (fps != 0) {
-      int64_t sleep = (1000 / (fps*frames_per_tick)) - (utils_get_time_millis() - frame_start);
+      int64_t sleep = (1000 / (fps * frames_per_tick)) -
+                      (utils_get_time_millis() - frame_start);
       utils_sleep_millis(sleep >= 0 ? sleep : 0);
     }
   }
 }
-

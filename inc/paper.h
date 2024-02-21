@@ -20,9 +20,9 @@
 
 #include "conf.h"
 
-void paper_init(const char *layer_name, const display_t* display_config);
+void paper_init(const char *layer_name, const display display_config);
 
-void paper_run(char *_monitor, char *init_path, char *state_path,
-               char *display_path, const uint16_t fps, const char *layer_name,
+void paper_run(char _monitor[MAX_DISPLAY_LENGTH], char init_path[MAX_PATH_LENGTH], char state_path[MAX_PATH_LENGTH],
+               char display_path[MAX_PATH_LENGTH], const uint16_t fps, const char *layer_name,
                const uint16_t width, const uint16_t height, const uint64_t cycles, const uint16_t frame_skip);
 #endif

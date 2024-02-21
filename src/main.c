@@ -97,13 +97,13 @@ int main(int argc, char **argv) {
       printf("trying to find config at %s\n", config_str);
     }
 
-    config_t config;
+    display config;
     int parseresult = parseconfig(config_str, &config);
     if (parseresult != 0) {
       fprintf(stderr, "parsing had an error, exiting.\n");
       exit(parseresult);
     }
-    paper_init(layer, config.display);
+    paper_init(layer, config);
   } else {
     print_usage(argv);
   }
