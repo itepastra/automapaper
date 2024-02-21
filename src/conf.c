@@ -2,6 +2,7 @@
 #include "toml.h"
 #include <stdio.h>
 #include <string.h>
+#include <wordexp.h>
 
 int parseconfig(const char *file, display *display) {
   FILE *fp;
@@ -76,16 +77,47 @@ int parseconfig(const char *file, display *display) {
     free(name.u.s);
     display->horizontal = horizontal.u.b, display->vertical = vertical.u.b;
     display->tps = tps.u.b;
-    strcpy(display->init_frag, init_frag.u.s);
-    free(init_frag.u.s);
-    strcpy(display->state_frag, state_frag.u.s);
-    free(state_frag.u.s);
-    strcpy(display->display_frag, display_frag.u.s);
-    free(display_frag.u.s);
     display->frames_per_tick = frame_skip.u.b, display->cycles = cycles.u.i;
+    wordexp_t init_exp;
+    if (wordexp(init_frag.u.s, &init_exp, 0) == 0) {
+      for (size_t i = 0; i < init_exp.we_wordc; i++) {
+        strcpy(display->init_frag, init_exp.we_wordv[i]);
+        free(init_frag.u.s);
+      }
+      wordfree(&init_exp);
+    } else {
+      // Handle error
+      fprintf(stderr, "Error expanding init_frag file path\n");
+      return 1;
+    }
+
+    wordexp_t state_exp;
+    if (wordexp(state_frag.u.s, &state_exp, 0) == 0) {
+      for (size_t i = 0; i < state_exp.we_wordc; i++) {
+        strcpy(display->state_frag, state_exp.we_wordv[i]);
+        free(state_frag.u.s);
+      }
+      wordfree(&state_exp);
+    } else {
+      // Handle error
+      fprintf(stderr, "Error expanding state_frag file path\n");
+      return 1;
+    }
+
+    wordexp_t display_exp;
+    if (wordexp(display_frag.u.s, &display_exp, 0) == 0) {
+      for (size_t i = 0; i < display_exp.we_wordc; i++) {
+        strcpy(display->display_frag, display_exp.we_wordv[i]);
+        free(display_frag.u.s);
+      }
+      wordfree(&display_exp);
+    } else {
+      // Handle error
+      fprintf(stderr, "Error expanding display_frag file path\n");
+      return 1;
+    }
     printf("parsed display with name %s\n", display->name);
     return 0;
   }
   return 1;
 }
-
