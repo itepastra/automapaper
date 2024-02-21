@@ -9,11 +9,10 @@ your shaders have to use one of the GLES versions:
 ```
 
 ## Todo
- - [ ] add config option for wrapping the state texture vs clamping
- - [ ] add config option for amount of cycles before reset
  - [ ] add mouse input
- - [ ] non-absolute paths in the config file
- - [ ] add support for multi screen from one call
+
+## Configuration
+A template config is provided in the defaults/ folder of the repository. You can use and edit it to your liking. Some default shaders are also included.
 
 ## Dependencies
 	libwayland-dev
@@ -29,9 +28,6 @@ your shaders have to use one of the GLES versions:
 	sudo ninja -C build install
 ## Uninstalling
 	sudo ninja -C build uninstall
-## Running
-	if it's not installed, you can run it from the build folder using
-	./automapaper -C {config}
 ## Bug Reports
 Please file bug reports at https://github.com/itepastra/automapaper/issues
 ## Contributing

@@ -9,16 +9,15 @@ horizontal=256
 vertical=144
 # target simulation ticks per second
 tps=30
-# DUE TO MY INABILITY THE SHADER PATHS HAVE TO BE ABSOLUTE
 # automaton shader
-# this has access to the previous state, which is a (horizontal, vertical) sized texture2D that uses the rgba values
-state_frag=""
+# this has access to the previous state, which is a (horizontal, vertical) sized texture2D that uses rgba float values
+state_frag="$XDG_CONFIG_DIR/automapaper/state.frag"
 # initial state / reset shader
 # this has access to the resolution, and the time since the program was started
-init_frag=""
+init_frag="$XDG_CONFIG_DIR/automapaper/init.frag"
 # scaling/display shader
-# this has access to the current state to display
-display_frag=""
+# this has access to the current and previous state to display
+display_frag="$XDG_CONFIG_DIR/automapaper/display.frag"
 # the amount of cycles before the init_frag shader reruns
 cycles=2500
 # the amount of frames to display per state tick
