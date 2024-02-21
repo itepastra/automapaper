@@ -104,6 +104,7 @@ static void get_res(void *data, struct wl_output *output, uint32_t flags,
   }
 }
 
+// create an empty texture and put the texture ID into the *texture pointer
 static void create_texture(GLuint *texture, uint16_t width, uint16_t height) {
   glGenTextures(1, texture);
   glBindTexture(GL_TEXTURE_2D, *texture);
@@ -115,6 +116,8 @@ static void create_texture(GLuint *texture, uint16_t width, uint16_t height) {
                GL_UNSIGNED_BYTE, NULL);
 }
 
+// create a shader program with the trivial vertex shader and the fragment
+// shader at *frag_path
 static GLuint create_program(const char *frag_path) {
   const char *vert_data[] = {"#version 310 es\n"
                              "in highp vec2 datIn;"
@@ -190,8 +193,6 @@ static GLuint create_program(const char *frag_path) {
 static void setup_fbo(GLuint *fbo, GLuint *prog, GLuint *texture1,
                       GLuint *texture2, GLuint *texture3, GLuint vert,
                       uint16_t width, uint16_t height, const char *frag_path) {
-  // make conway look nice
-
   if (access(frag_path, R_OK) != 0) {
     fprintf(stderr, "I can't seem to find %s\n", frag_path);
     exit(1);
@@ -252,26 +253,27 @@ static void setup_fbo(GLuint *fbo, GLuint *prog, GLuint *texture1,
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-static void draw_noise(GLuint fbo, GLuint texture, GLuint random_prog,
-                       GLuint final_prog, uint16_t width, uint16_t height) {
-  glViewport(0, 0, width, height);
-  glUseProgram(random_prog);
+// uses the initial program and the final program to initialize the state and draw it to the screen
+static void draw_initial(GLuint fbo, GLuint texture, GLuint initial_program,
+                       GLuint final_program, uint16_t simulation_width, uint16_t simulation_height) {
+  glViewport(0, 0, simulation_width, simulation_height);
+  glUseProgram(initial_program);
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                          texture,
-                         0); // bind the correct texture to the output????
-  GLint time_var = glGetUniformLocation(random_prog, "time");
+                         0);
+  GLint time_var = glGetUniformLocation(initial_program, "time");
   glUniform1f(time_var,
               (utils_get_time_millis() - start) % 10000 * 2.718281828f);
-  GLint resolution = glGetUniformLocation(random_prog, "resolution");
-  glUniform2f(resolution, width, height);
+  GLint resolution = glGetUniformLocation(initial_program, "resolution");
+  glUniform2f(resolution, simulation_width, simulation_height);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-  glViewport(0, 0, width, height);
+  glViewport(0, 0, output->width, output->height);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glUseProgram(final_prog);
+  glUseProgram(final_program);
   glBindTexture(GL_TEXTURE_2D, texture);
-  GLint tex2D = glGetUniformLocation(final_prog, "tex2D");
+  GLint tex2D = glGetUniformLocation(final_program, "tex2D");
   glUniform1i(tex2D, 0);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
@@ -549,7 +551,7 @@ void paper_run(char _monitor[MAX_DISPLAY_LENGTH],
 
   GLuint init_program = create_program(init_path);
 
-  draw_noise(fbo, state_two, init_program, display_program, width, height);
+  draw_initial(fbo, state_two, init_program, display_program, width, height);
 
   uint64_t cycles = 0;
   float_t frame_part = 0;
@@ -574,7 +576,7 @@ void paper_run(char _monitor[MAX_DISPLAY_LENGTH],
     eglSwapBuffers(egl_display, egl_surface);
     if (cycles++ > max_cycles) {
       cycles = 0;
-      draw_noise(fbo, state_one, init_program, display_program, width, height);
+      draw_initial(fbo, state_one, init_program, display_program, width, height);
     }
     if (fps != 0) {
       int64_t sleep = (1000 / (fps * frames_per_tick)) -
