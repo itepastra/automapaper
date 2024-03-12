@@ -1,16 +1,26 @@
 {
-		description = "A shader based wallpaper that can be used for cellular automata";
+  description = "A very basic flake";
 
-		inputs.nixpkgs.url = github:NixOs/nispkgs/nixos-unstable;
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs";
+  };
 
-		outputs = {self, nixpkgs}: {
-				defaultPackage.x86_64-linux =
-						with import nixpkgs { system = "x86_64-linux"; };
-						stdenv.mkDerivation {
-								name = "automapaper"
-								src = self;
-								buildPhase = "meson setup build";
-								installPhase = "meson install";
-						};
-		};
+  outputs = { nixpkgs, ... }: {
+    
+    packages.x86_64-linux.default = 
+    with import nixpkgs { system = "x86_64-linux"; };
+    stdenv.mkDerivation {
+      name = "automapaper";
+      src = ./.;
+      nativeBuildInputs = with nixpkgs; [ meson ninja pkg-config pacman libarchive ];
+      buildInputs = with nixpkgs; [ wayland libGL ];
+      configurePhase = "meson setup build";
+      buildPhase = "ninja -C build";
+      installPhase = ''
+        mkdir -p $out/bin
+        mv build/automapaper $out/bin
+      '';
+    };
+  };
 }
+
