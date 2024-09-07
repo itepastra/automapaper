@@ -20,19 +20,25 @@
     in
     {
 
-      packages = forAllSystems ({ system, pkgs, ... }:
-        pkgs.stdenv.mkDerivation {
-          name = "automapaper";
-          src = ./.;
-          nativeBuildInputs = with pkgs; [ meson ninja pkg-config pacman libarchive ];
-          buildInputs = with pkgs; [ wayland libGL ];
-          configurePhase = "meson setup build";
-          buildPhase = "ninja -C build";
-          installPhase = ''
-            mkdir -p "$out/bin"
-            mv build/automapaper "$out/bin"
-          '';
-        });
+      packages = forAllSystems
+        ({ system, pkgs, ... }:
+          rec {
+            automapaper = pkgs.stdenv.mkDerivation {
+              name = "automapaper";
+              src = ./.;
+              nativeBuildInputs = with pkgs; [ meson ninja pkg-config pacman libarchive ];
+              buildInputs = with pkgs; [ wayland libGL ];
+              configurePhase = "meson setup build";
+              buildPhase = "ninja -C build";
+              installPhase = ''
+                mkdir -p "$out/bin"
+                mv build/automapaper "$out/bin"
+              '';
+            };
+
+            default = automapaper;
+          }
+        );
 
       devShell = forAllSystems ({ system, pkgs, ... }:
         pkgs.mkShell {
