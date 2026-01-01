@@ -52,7 +52,53 @@ struct node {
   struct wl_list link;
 };
 
-static void nop() {}
+static void noop_global_remove(void *data, struct wl_registry *reg, uint32_t name) {
+  (void)data; (void)reg; (void)name;
+}
+
+static void noop_xdg_description(void *data, struct zxdg_output_v1 *xdg, const char *desc) {
+  (void)data; (void)xdg; (void)desc;
+}
+
+static void noop_xdg_done(void *data, struct zxdg_output_v1 *xdg) {
+  (void)data; (void)xdg;
+}
+
+static void noop_xdg_logical_pos(void *data, struct zxdg_output_v1 *xdg, int32_t x, int32_t y) {
+  (void)data; (void)xdg; (void)x; (void)y;
+}
+
+static void noop_xdg_logical_size(void *data, struct zxdg_output_v1 *xdg, int32_t w, int32_t h) {
+  (void)data; (void)xdg; (void)w; (void)h;
+}
+
+static void noop_output_done(void *data, struct wl_output *out) {
+  (void)data; (void)out;
+}
+
+static void noop_output_geometry(void *data, struct wl_output *out,
+                                 int32_t x, int32_t y, int32_t phys_w, int32_t phys_h,
+                                 int32_t subpixel, const char *make, const char *model,
+                                 int32_t transform) {
+  (void)data; (void)out; (void)x; (void)y; (void)phys_w; (void)phys_h;
+  (void)subpixel; (void)make; (void)model; (void)transform;
+}
+
+static void noop_output_scale(void *data, struct wl_output *out, int32_t factor) {
+  (void)data; (void)out; (void)factor;
+}
+
+static void noop_output_name(void *data, struct wl_output *out, const char *name) {
+  (void)data; (void)out; (void)name;
+}
+
+static void noop_output_description(void *data, struct wl_output *out, const char *desc) {
+  (void)data; (void)out; (void)desc;
+}
+
+static void noop_layer_closed(void *data, struct zwlr_layer_surface_v1 *surf) {
+  (void)data; (void)surf;
+}
 
 static void add_interface(void *data, struct wl_registry *registry,
                           uint32_t name, const char *interface,
@@ -338,7 +384,7 @@ void paper_run(char _monitor[MAX_DISPLAY_LENGTH],
 
   struct wl_registry *registry = wl_display_get_registry(wl);
   struct wl_registry_listener reg_listener = {.global = add_interface,
-                                              .global_remove = nop};
+                                              .global_remove = noop_global_remove};
   wl_registry_add_listener(registry, &reg_listener, NULL);
   wl_display_roundtrip(wl);
 
@@ -346,19 +392,19 @@ void paper_run(char _monitor[MAX_DISPLAY_LENGTH],
   wl_list_for_each(node, &outputs, link) {
     struct zxdg_output_v1 *xdg_output =
         zxdg_output_manager_v1_get_xdg_output(output_manager, node->output);
-    struct zxdg_output_v1_listener xdg_listener = {.description = nop,
-                                                   .done = nop,
-                                                   .logical_position = nop,
-                                                   .logical_size = nop,
+    struct zxdg_output_v1_listener xdg_listener = {.description = noop_xdg_description,
+                                                   .done = noop_xdg_done,
+                                                   .logical_position = noop_xdg_logical_pos,
+                                                   .logical_size = noop_xdg_logical_size,
                                                    .name = get_name};
     zxdg_output_v1_add_listener(xdg_output, &xdg_listener, node);
 
-    struct wl_output_listener out_listener = {.done = nop,
-                                              .geometry = nop,
+    struct wl_output_listener out_listener = {.done = noop_output_done,
+                                              .geometry = noop_output_geometry,
                                               .mode = get_res,
-                                              .scale = nop,
-                                              .name = nop,
-                                              .description = nop};
+                                              .scale = noop_output_scale,
+                                              .name = noop_output_name,
+                                              .description = noop_output_description};
     wl_output_add_listener(node->output, &out_listener, node);
   }
   wl_display_roundtrip(wl);
@@ -397,7 +443,7 @@ void paper_run(char _monitor[MAX_DISPLAY_LENGTH],
   zwlr_layer_surface_v1_set_exclusive_zone(surface, -1);
   zwlr_layer_surface_v1_set_size(surface, output->width, output->height);
   struct zwlr_layer_surface_v1_listener surface_listener = {
-      .closed = nop, .configure = config_surface};
+      .closed = noop_layer_closed, .configure = config_surface};
   zwlr_layer_surface_v1_add_listener(surface, &surface_listener, NULL);
   wl_surface_commit(wl_surface);
   wl_display_roundtrip(wl);
